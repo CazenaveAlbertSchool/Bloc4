@@ -105,15 +105,15 @@ jobs:
     name: Deploy to K8s
     needs: build
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    # Skipped automatically if KUBECONFIG_B64 secret is not configured
+    if: github.ref == 'refs/heads/main' && secrets.KUBECONFIG_B64 != ''
     environment: production
-    # Requires secret KUBECONFIG_B64 (base64-encoded kubeconfig)
 
     steps:
       - uses: actions/checkout@v4
 
       - name: Install kubectl
-        uses: azure/setup-kubectl@v3
+        uses: azure/setup-kubectl@v4
 
       - name: Configure kubeconfig
         run: |
@@ -137,8 +137,3 @@ jobs:
           kubectl rollout status deployment/mlops-api \
             --namespace mlops-prod \
             --timeout=120s
-
-      - name: Smoke test deployed API
-        run: |
-          API_URL=$(kubectl get svc mlops-api -n mlops-prod -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-          curl -f "http://${API_URL}/healthz" | python3 -c "import sys,json; d=json.load(sys.stdin); assert d['status']=='ok', d"

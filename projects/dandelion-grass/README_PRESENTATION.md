@@ -73,7 +73,7 @@ Quand on développe un modèle IA, on a souvent :
 ┌─────────────────────────────────────────────────────────────┐
 │                     PIPELINE MLOps                          │
 │                                                             │
-│  1️⃣ INGESTION      2️⃣ TRAINING       3️⃣ SERVING           │
+│  1️⃣ INGESTION      2️⃣ TRAINING       3️⃣ SERVING             │
 │                                                             │
 │  📥 URLs           🧠 ResNet18        🌐 API FastAPI       │
 │     ↓                  ↓                  ↓                │
