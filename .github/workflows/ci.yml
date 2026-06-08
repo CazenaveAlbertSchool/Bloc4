@@ -42,7 +42,7 @@ jobs:
           pip install pytest httpx ruff
 
       - name: Lint (ruff)
-        run: ruff check apps/ tests/ --ignore E501
+        run: ruff check api/ tests/ --ignore E501
 
       - name: Run tests
         env:
