@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mlops-api
+  namespace: mlops-prod
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mlops-api
+  template:
+    metadata:
+      labels:
+        app: mlops-api
+    spec:
+      containers:
+      - name: api
+        image: your-dockerhub-user/mlops-api:latest
+        ports:
+        - containerPort: 8000
+        env:
+        - name: MODEL_S3_URI
+          value: ""
+        - name: S3_ENDPOINT_URL
+          value: "http://minio.mlops-prod.svc.cluster.local:9000"
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: minio-cred
+              key: access_key
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: minio-cred
+              key: secret_key
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mlops-api
+  namespace: mlops-prod
+spec:
+  selector:
+    app: mlops-api
+  ports:
+  - port: 80
+    targetPort: 8000
+    protocol: TCP

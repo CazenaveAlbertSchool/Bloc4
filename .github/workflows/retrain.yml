@@ -1,0 +1,50 @@
+name: Retrain — Trigger Airflow DAG
+
+on:
+  # Mirrors the Airflow DAG schedule (every Monday at 03:00 UTC)
+  schedule:
+    - cron: '0 3 * * 1'
+
+  # Allow manual trigger from the GitHub UI with optional force flag
+  workflow_dispatch:
+    inputs:
+      force_retrain:
+        description: 'Force retrain even without new data'
+        type: boolean
+        default: false
+
+jobs:
+  trigger-retrain:
+    name: Trigger ct_retrain_deploy DAG
+    runs-on: ubuntu-latest
+    # Requires secrets: AIRFLOW_BASE_URL, AIRFLOW_USER, AIRFLOW_PASS
+
+    steps:
+      - name: Trigger Airflow DAG via REST API
+        run: |
+          curl -f -X POST \
+            "${{ secrets.AIRFLOW_BASE_URL }}/api/v1/dags/ct_retrain_deploy/dagRuns" \
+            -H "Content-Type: application/json" \
+            -u "${{ secrets.AIRFLOW_USER }}:${{ secrets.AIRFLOW_PASS }}" \
+            -d "{\"conf\": {\"force\": ${{ inputs.force_retrain || 'false' }}}}"
+
+      - name: Log trigger timestamp
+        run: echo "Retrain DAG triggered at $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+
+  notify-on-failure:
+    name: Notify on failure
+    needs: trigger-retrain
+    runs-on: ubuntu-latest
+    if: failure()
+    steps:
+      - name: Create GitHub issue on failure
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `[MLOps] Retrain trigger failed — ${new Date().toISOString().slice(0,10)}`,
+              body: `The scheduled retrain pipeline failed.\n\nRun: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}`,
+              labels: ['mlops', 'retrain', 'bug']
+            })
