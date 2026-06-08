@@ -157,7 +157,9 @@ class TestRunDriftCheck:
         with patch("monitoring.drift_check._upload_to_s3"), \
              patch("monitoring.drift_check._push_drift_score_to_api"):
 
-            mock_ref.return_value = _make_df(200, shift=0.0, seed=1)
+            ref_df = _make_df(200, shift=0.0, seed=1)
+            ref_df["ts"] = pd.date_range("2023-01-01", periods=200, freq="10min")
+            mock_ref.return_value = ref_df
             mock_cur.return_value = _make_df(200, shift=3.0, seed=2)
 
             result = run_drift_check()

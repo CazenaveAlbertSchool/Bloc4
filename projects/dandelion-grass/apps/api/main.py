@@ -136,13 +136,12 @@ def load_model(initial=False, uri: Optional[str]=None):
 
 def predict_tensor(img: Image.Image):
     if _model is None:
-        # fallback heuristic
+        # fallback heuristic: dandelion is yellow (r ≈ g), grass is green (g >> r)
         px = img.resize((64, 64)).getdata()
         r = sum(p[0] for p in px) / (64*64)
         g = sum(p[1] for p in px) / (64*64)
-        b = sum(p[2] for p in px) / (64*64)
-        score = (r + g) / (b + 1e-5)
-        prob = max(0.0, min(1.0, (score - 1.0) / 4.0))
+        ratio = r / (g + 1e-5)
+        prob = max(0.0, min(1.0, ratio - 0.3))
         label = "dandelion" if prob > 0.5 else "grass"
         return label, float(prob), "heuristic"
     x = preprocess(img).unsqueeze(0)
