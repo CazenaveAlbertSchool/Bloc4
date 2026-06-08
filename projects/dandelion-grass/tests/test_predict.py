@@ -5,7 +5,6 @@ Utilise des images synthétiques PIL — pas besoin de MinIO, Postgres ni modèl
 """
 
 import io
-import json
 import os
 import pytest
 from fastapi.testclient import TestClient

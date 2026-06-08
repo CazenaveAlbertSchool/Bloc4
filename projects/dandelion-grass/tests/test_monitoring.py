@@ -5,13 +5,10 @@ Utilise des DataFrames synthétiques — pas besoin de Postgres, MinIO ni Eviden
 réseau. Les tests vérifient la logique de détection de drift et les cas limites.
 """
 
-import json
 import os
-import sys
-import pytest
 import pandas as pd
 import numpy as np
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 os.environ.setdefault("DATABASE_URL", "postgresql://plants:plants@localhost:5432/plants")
 
@@ -175,7 +172,6 @@ class TestRunDriftCheck:
 class TestExtractFeatures:
 
     def test_extract_features_returns_four_keys(self):
-        import os
         os.environ.setdefault("DATABASE_URL", "")
         from apps.api.main import _extract_features
         from PIL import Image
