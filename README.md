@@ -32,8 +32,7 @@ Pipeline MLOps complet implémenté avec :
 
 1. **Cloner le repository** :
 ```bash
-git clone https://github.com/MarioDaoud02/ML-ops.git
-cd ML-ops
+git clone https://github.com/CazenaveAlbertSchool/Bloc4
 ```
 
 2. **Lancer un projet** :
@@ -81,4 +80,4 @@ Pour toute question ou problème, créer une issue sur GitHub.
 
 ---
 
-**Maintenu par l'équipe MLOps** | **Dernière mise à jour** : 2025-10-22
+**Maintenu par l'équipe MLOps** | **Dernière mise à jour** : 2026-06-08
