@@ -2,6 +2,11 @@ from datetime import datetime
 import os
 from airflow import DAG
 from airflow.decorators import task
+from airflow.operators.trigger_dagrun import TriggerDagRunOperator
+from airflow.operators.empty import EmptyOperator
+
+# Trigger retrain when at least this share of feature columns drifts
+DRIFT_THRESHOLD = float(os.getenv("DRIFT_THRESHOLD", "0.3"))
 
 with DAG(
     dag_id="monitoring_drift_check",
@@ -18,7 +23,7 @@ Runs Evidently against the `predictions` table in Postgres.
 - **current**: last 7 days of predictions
 - Uploads HTML report + JSON summary to MinIO (`plants/monitoring/`)
 - Pushes `drift_score` to the API Prometheus gauge via `POST /admin/drift-score`
-- Raises a warning task if drift is detected
+- Triggers `ct_retrain_deploy` DAG automatically if `drift_score >= DRIFT_THRESHOLD`
 """,
 ) as dag:
 
@@ -43,11 +48,11 @@ Runs Evidently against the `predictions` table in Postgres.
         return run_drift_check(days_back=7)
 
     @task
-    def alert_on_drift(summary: dict):
-        """Log a visible warning if drift was detected."""
+    def alert_on_drift(summary: dict) -> dict:
+        """Log result and return summary unchanged for the downstream branch."""
         if summary.get("status") == "skipped":
             print("Drift check was skipped due to insufficient data.")
-            return
+            return summary
         drift_score = summary.get("drift_score", 0.0)
         drift_detected = summary.get("drift_detected", False)
         if drift_detected:
@@ -55,14 +60,49 @@ Runs Evidently against the `predictions` table in Postgres.
                 f"⚠️  DATA DRIFT DETECTED — score={drift_score:.3f}  "
                 f"(ref={summary.get('n_reference')}, cur={summary.get('n_current')})\n"
                 f"Column details: {summary.get('columns', {})}\n"
-                "Action required: review data pipeline or trigger retraining."
+                f"Threshold={DRIFT_THRESHOLD} — will trigger retrain if score >= threshold."
             )
         else:
             print(
                 f"✅  No drift detected — score={drift_score:.3f}  "
                 f"(ref={summary.get('n_reference')}, cur={summary.get('n_current')})"
             )
+        return summary
 
+    @task.branch
+    def decide_retrain(summary: dict) -> str:
+        """Trigger retraining if drift_score crosses the threshold."""
+        status = summary.get("status", "")
+        drift_score = summary.get("drift_score", 0.0)
+        drift_detected = summary.get("drift_detected", False)
+
+        if status == "ok" and drift_detected and drift_score >= DRIFT_THRESHOLD:
+            print(
+                f"Drift score {drift_score:.3f} >= threshold {DRIFT_THRESHOLD} "
+                "→ triggering ct_retrain_deploy."
+            )
+            return "trigger_retrain"
+
+        print(
+            f"No retrain needed (status={status}, score={drift_score:.3f}, "
+            f"threshold={DRIFT_THRESHOLD})."
+        )
+        return "no_retrain_needed"
+
+    # ── Trigger retraining DAG ────────────────────────────────────
+    trigger_retrain = TriggerDagRunOperator(
+        task_id="trigger_retrain",
+        trigger_dag_id="ct_retrain_deploy",
+        conf={"reason": "drift_detected_by_monitoring"},
+        wait_for_completion=False,
+        reset_dag_run=True,
+    )
+
+    no_retrain_needed = EmptyOperator(task_id="no_retrain_needed")
+
+    # ── Wire the DAG ──────────────────────────────────────────────
     n = check_data_availability()
     summary = run_evidently(n)
-    alert_on_drift(summary)
+    alerted = alert_on_drift(summary)
+    decision = decide_retrain(alerted)
+    decision >> [trigger_retrain, no_retrain_needed]
