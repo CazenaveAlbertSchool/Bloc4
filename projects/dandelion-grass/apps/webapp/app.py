@@ -1,4 +1,6 @@
-import os, requests, io
+import os
+import requests
+import io
 import streamlit as st
 from PIL import Image
 
