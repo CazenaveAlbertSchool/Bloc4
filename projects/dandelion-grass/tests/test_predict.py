@@ -15,7 +15,7 @@ os.environ.setdefault("MODEL_PATH", "")
 os.environ.setdefault("MODEL_S3_URI", "")
 os.environ.setdefault("S3_ENDPOINT_URL", "http://localhost:9000")
 
-from apps.api.main import app  # noqa: E402  (env must be set first)
+from api.main import app  # noqa: E402  (env must be set first)
 
 client = TestClient(app)
 

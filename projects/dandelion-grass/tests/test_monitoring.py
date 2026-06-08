@@ -175,7 +175,7 @@ class TestExtractFeatures:
 
     def test_extract_features_returns_four_keys(self):
         os.environ.setdefault("DATABASE_URL", "")
-        from apps.api.main import _extract_features
+        from api.main import _extract_features
         from PIL import Image
 
         img = Image.new("RGB", (224, 224), color=(100, 150, 80))
@@ -184,7 +184,7 @@ class TestExtractFeatures:
         assert set(feats.keys()) == {"mean_r", "mean_g", "mean_b", "brightness"}
 
     def test_extract_features_values_in_range(self):
-        from apps.api.main import _extract_features
+        from api.main import _extract_features
         from PIL import Image
 
         img = Image.new("RGB", (224, 224), color=(200, 100, 50))
@@ -194,7 +194,7 @@ class TestExtractFeatures:
             assert 0.0 <= val <= 255.0, f"{key} = {val} out of [0, 255]"
 
     def test_brightness_is_mean_of_channels(self):
-        from apps.api.main import _extract_features
+        from api.main import _extract_features
         from PIL import Image
 
         img = Image.new("RGB", (64, 64), color=(120, 180, 60))

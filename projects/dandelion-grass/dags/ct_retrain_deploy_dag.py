@@ -34,7 +34,7 @@ with DAG(
 
     @task
     def train_model() -> str:
-        from ml.train_optimized import train_one_run_optimized
+        from src.train_optimized import train_one_run_optimized
         # Fewer epochs for scheduled retraining to keep runtime reasonable
         return train_one_run_optimized(epochs=10, lr=5e-4, batch_size=8, patience=4)
 
